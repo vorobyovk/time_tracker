@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать запись</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .content-wrap { max-width: 600px; margin: 20px auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; }
+        .user-info-panel {text-align: right; margin-bottom: 10px; padding-bottom:10px; border-bottom: 1px solid #eee; font-size: 0.9em;}
+        .user-info-panel strong { color: #0056b3; }
+        .user-info-panel a { margin-left: 15px; color: #007bff; text-decoration: none; }
+        .user-info-panel a.admin-link { color: #dc3545; }
+
+        .form-entry div { margin-bottom: 18px; }
+        .form-entry label { display: block; margin-bottom: 6px; font-weight: 500; color: #555; }
+        .form-entry input[type="date"], .form-entry input[type="number"], .form-entry textarea {
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .form-entry .time-inputs { display: flex; gap: 15px; }
+        .form-entry .time-inputs div { flex: 1; }
+        .form-entry textarea { resize: vertical; min-height: 100px; }
+        .form-actions { margin-top: 25px; display: flex; justify-content: flex-start; gap: 15px; }
+        .form-actions button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s ease; }
+        .form-actions .save-btn { background-color: #28a745; color: white; }
+        .form-actions .save-btn:hover { background-color: #218838; }
+        .form-actions .cancel-link { display: inline-flex; align-items: center; padding: 10px 20px; font-size: 16px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; }
+        .form-actions .cancel-link:hover { background-color: #5a6268; }
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; text-align: center; }
+        .flash-messages li.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-messages li.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="content-wrap">
+        {% if current_user.is_authenticated %}
+            <div class="user-info-panel">
+                Пользователь: <strong>{{ current_user.username }}</strong>
+                {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin_users_list_route') }}" class="admin-link">(Панель Администратора)</a>
+                {% endif %}
+                <a href="{{ url_for('logout_route') }}">Выйти</a>
+            </div>
+        {% endif %}
+
+        <h1>Редактировать запись</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message_text in messages %}
+                     {# Отображаем только ошибки на странице редактирования, чтобы не показывать старые success сообщения #}
+                    {% if category == 'error' %}
+                        <li class="{{ category }}">{{ message_text }}</li>
+                    {% endif %}
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('edit_entry_route', entry_id=entry.id) }}" class="form-entry">
+            <div>
+                <label for="entry_date">Дата:</label>
+                <input type="date" id="entry_date" name="entry_date" value="{{ entry.entry_date.isoformat() }}" required>
+            </div>
+            <div class="time-inputs">
+                <div>
+                    <label for="work_hours">Часы:</label>
+                    <input type="number" id="work_hours" name="work_hours" value="{{ entry.work_hours }}" min="0" max="23" placeholder="ЧЧ">
+                </div>
+                <div>
+                    <label for="work_minutes">Минуты:</label>
+                    <input type="number" id="work_minutes" name="work_minutes" value="{{ entry.work_minutes }}" min="0" max="59" placeholder="ММ">
+                </div>
+            </div>
+            <div>
+                <label for="description">Описание:</label>
+                <textarea id="description" name="description" rows="4">{{ entry.description }}</textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="save-btn">Сохранить изменения</button>
+                {# Ссылка "Отмена" возвращает на просмотр того дня, запись из которого редактировалась #}
+                <a href="{{ url_for('index', year=current_year, month=current_month, view_date=current_view_date) }}" class="cancel-link">Отмена</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

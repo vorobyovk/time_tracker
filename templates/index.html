@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Календарь и Учет Рабочего Времени</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding:0; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        .page-container { display: flex; flex-direction: column; min-height: 100vh; }
+        .content-wrap { flex: 1; padding: 20px; max-width: 900px; margin: 20px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { text-align: center; color: #333; }
+        .user-info-panel {text-align: right; margin-bottom: 10px; padding-bottom:10px; border-bottom: 1px solid #eee; font-size: 0.9em;}
+        .user-info-panel strong { color: #0056b3; }
+        .user-info-panel a { margin-left: 15px; color: #007bff; text-decoration: none; }
+        .user-info-panel a.admin-link { color: #dc3545; }
+        .user-info-panel span.supervisor-role { color: #17a2b8; }
+
+        .controls { margin-bottom: 20px; text-align: center; background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .controls form { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+        .controls label { margin-right: 5px; font-weight: 500; }
+        .controls select, .controls input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .controls button, .form-entry button { padding: 9px 18px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; transition: background-color 0.3s ease; }
+        .controls button:hover, .form-entry button:hover { background-color: #0056b3; }
+        .controls button[name="summarize_month"] { background-color: #17a2b8; }
+        .controls button[name="summarize_month"]:hover { background-color: #138496; }
+
+        .calendar-container { margin-top: 20px; margin-bottom: 30px; }
+        table.month { border-collapse: collapse; width: 100%; font-size: 14px; table-layout: fixed; }
+        table.month th.month { background-color: #007bff; color: white; font-size: 1.5em; padding: 10px; text-transform: capitalize; }
+        table.month th { background-color: #f8f9fa; color: #333; padding: 8px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; }
+        table.month td { border: 1px solid #dee2e6; text-align: center; height: 85px; vertical-align: top; overflow: hidden; position: relative; }
+        table.month td.noday { background-color: #f8f9fa; color: #ccc; }
+        table.month td a.day-link { display: block; text-decoration: none; color: inherit; height: 100%; width: 100%; box-sizing: border-box; padding: 5px; }
+        table.month td a.day-link:hover { background-color: #e9f5ff; }
+        table.month td span.work-time { display: block; font-size: 0.75em; color: #28a745; margin-top: 4px; line-height: 1.2; }
+
+        .form-entry div { margin-bottom: 15px; }
+        .form-entry label { display: block; width: auto; margin-bottom: 5px; font-weight: 500; }
+        .form-entry input[type="date"], .form-entry input[type="number"], .form-entry textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .form-entry .time-inputs { display: flex; gap: 15px; }
+        .form-entry .time-inputs div { flex: 1; }
+        .form-entry .time-inputs input[type="number"] { width: 100%; }
+        .form-entry textarea { resize: vertical; min-height: 80px; }
+
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; text-align: center; }
+        .flash-messages li.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-messages li.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-messages li.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .flash-messages li.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .total-monthly-time { text-align: center; margin-bottom: 20px; padding: 10px; background-color: #e9ecef; border-radius: 5px;}
+        .viewing-info { text-align:center; margin-bottom:15px; padding:8px; background-color:#d1ecf1; border-radius:4px; color: #0c5460; }
+        
+        .daily-entries-section { margin-top: 30px; padding: 20px; background-color: #f0f9ff; border: 1px solid #cce5ff; border-radius: 8px;}
+        .daily-entries-section h3 { margin-top: 0; color: #004085; }
+        .daily-entries-list { list-style: none; padding: 0; }
+        .daily-entries-list li { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #d6e9f8; background-color: #fff; margin-bottom: 5px; border-radius: 4px;}
+        .daily-entries-list li:last-child { border-bottom: none; }
+        .daily-entries-list .entry-details { flex-grow: 1; word-break: break-word; } 
+        .daily-entries-list .entry-actions { white-space: nowrap; } 
+        .daily-entries-list .entry-actions a, .daily-entries-list .entry-actions button { margin-left: 10px; padding: 6px 12px; font-size: 0.9em; text-decoration: none; border-radius: 4px; cursor: pointer; }
+        .daily-entries-list .entry-actions .edit-btn { background-color: #ffc107; color: black; border: none; }
+        .daily-entries-list .entry-actions .edit-btn:hover { background-color: #e0a800; }
+        .daily-entries-list .entry-actions .delete-btn { background-color: #dc3545; color: white; border: none; }
+        .daily-entries-list .entry-actions .delete-btn:hover { background-color: #c82333; }
+        .btn-secondary { display: inline-block; padding: 8px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em; }
+        .btn-secondary:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="content-wrap">
+            {% if current_user.is_authenticated %}
+                <div class="user-info-panel">
+                    Пользователь: <strong>{{ current_user.username }}</strong>
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_users_list_route') }}" class="admin-link">(Панель Администратора)</a>
+                    {% elif current_user.is_supervisor %}
+                        <span class="supervisor-role">(Супервайзер)</span>
+                    {% endif %}
+                    <a href="{{ url_for('logout_route') }}">Выйти</a>
+                </div>
+            {% endif %}
+
+            <h1>Календарь и Учет Времени</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <div class="controls">
+                <form method="POST" action="{{ url_for('index') }}">
+                    <label for="month_selector_main">Месяц:</label> {# Изменено id для избежания дублирования, если потребуется JS #}
+                    <select name="month" id="month_selector_main">
+                        {% for m_num, m_name in dropdown_months %}
+                            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="year_selector_main">Год:</label> {# Изменено id #}
+                    <input type="number" name="year" id="year_selector_main" value="{{ selected_year }}" min="1" max="9999" required>
+                    
+                    {% if current_user.is_supervisor and viewable_users %}
+                        <label for="target_user_id_selector" style="margin-left: 15px;">Сотрудник:</label>
+                        <select name="target_user_id_selector" id="target_user_id_selector"> 
+                            <option value="">-- Выберите сотрудника --</option>
+                            {% for user_to_view in viewable_users %}
+                            <option value="{{ user_to_view.id }}" 
+                                    {% if user_to_view.id == current_target_user_id %}selected{% endif %}>
+                                {{ user_to_view.username|escape }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                    
+                    <button type="submit" name="show_calendar">Показать календарь</button>
+                    
+                    {% if (current_user.is_supervisor and current_target_user_id) or (not current_user.is_supervisor and not current_user.is_admin) %}
+                        <button type="submit" name="summarize_month">Суммировать за месяц</button>
+                    {% endif %}
+                </form>
+            </div>
+            
+            {% if current_user.is_supervisor and is_viewing_other_user %}
+                <div class="viewing-info">
+                    Просмотр данных сотрудника: <strong>{{ target_username_viewed|escape }}</strong>
+                </div>
+            {% elif current_user.is_supervisor and not current_target_user_id and viewable_users %}
+                 <div class="viewing-info" style="background-color: #fff3cd; color: #856404;">
+                    Пожалуйста, выберите сотрудника из списка выше для просмотра его данных.
+                </div>
+            {% endif %}
+
+            {% if total_monthly_time_str %}
+            <div class="total-monthly-time">
+                <h3>
+                    Итого за {{ dropdown_months[selected_month-1][1] }} {{ selected_year }}
+                    {% if current_user.is_supervisor and is_viewing_other_user %} (сотрудник: {{ target_username_viewed|escape }}){% endif %}:
+                    {{ total_monthly_time_str }}
+                </h3>
+            </div>
+            {% endif %}
+
+            <div class="calendar-container">
+                {{ calendar_html|safe }}
+            </div>
+
+            {# user_id_for_data_display будет None для супервайзера, если он никого не выбрал #}
+            {% if view_date_str and user_id_for_data_display %} 
+            <div class="daily-entries-section">
+                <h3>
+                    Записи за {{ view_date_str }}
+                    {% if current_user.is_supervisor and is_viewing_other_user %} (сотрудник: {{ target_username_viewed|escape }}){% endif %}
+                </h3>
+                {% if entries_for_specific_date %}
+                    <ul class="daily-entries-list">
+                    {% for entry in entries_for_specific_date %}
+                        <li>
+                            <span class="entry-details">
+                                {{ entry.work_hours }}ч {{ entry.work_minutes }}м
+                                {% if entry.description %} - <em>{{ entry.description|escape }}</em>{% endif %}
+                            </span>
+                            {# Кнопки редактирования/удаления: #}
+                            {# 1. Обычный пользователь видит их для СВОИХ записей. #}
+                            {# 2. Администратор видит их для ЛЮБЫХ записей. #}
+                            {# 3. Супервайзер НЕ видит их для ЧУЖИХ записей (и своих у него нет). #}
+                            {% if (current_user.role == 'user' and entry.user_id == current_user.id) or current_user.is_admin %}
+                            <span class="entry-actions">
+                                <a href="{{ url_for('edit_entry_route', entry_id=entry.id) }}" class="edit-btn">Редактировать</a>
+                                <form method="POST" action="{{ url_for('delete_entry_route', entry_id=entry.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту запись?');">
+                                    <button type="submit" class="delete-btn">Удалить</button>
+                                </form>
+                            </span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Нет записей за эту дату.</p>
+                {% endif %}
+                 <div style="margin-top:15px; text-align:center;">
+                    <a href="{{ url_for('index', year=selected_year, month=selected_month, 
+                                        total_time=request.args.get('total_time'), 
+                                        target_user_id=current_target_user_id if current_user.is_supervisor and is_viewing_other_user else None) }}" 
+                       class="btn-secondary">Скрыть записи дня</a>
+                </div>
+            </div>
+            {% endif %}
+            {# Форма добавления записей - только для обычных пользователей (не супервайзеров и не админов) #}
+            {% if not current_user.is_supervisor and not current_user.is_admin %}
+                <hr style="margin-top: 30px; margin-bottom: 30px;">
+                <h2>Добавить запись о работе</h2>
+                <form method="POST" action="{{ url_for('index') }}" class="form-entry">
+                    <input type="hidden" name="current_calendar_year_for_redirect" value="{{ selected_year }}">
+                    <input type="hidden" name="current_calendar_month_for_redirect" value="{{ selected_month }}">
+                    <div>
+                        <label for="entry_date">Дата:</label>
+                        <input type="date" id="entry_date" name="entry_date" value="{{ view_date_str if view_date_str and not is_supervisor_viewing_other else today_date_iso }}" required>
+                    </div>
+                    <div class="time-inputs">
+                        <div>
+                            <label for="work_hours">Часы:</label>
+                            <input type="number" id="work_hours" name="work_hours" min="0" max="23" value="0" placeholder="ЧЧ">
+                        </div>
+                        <div>
+                            <label for="work_minutes">Минуты:</label>
+                            <input type="number" id="work_minutes" name="work_minutes" min="0" max="59" value="0" placeholder="ММ">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="description">Описание работы:</label>
+                        <textarea id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" name="submit_entry">Сохранить запись</button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление пользователями</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
+        .container { max-width: 800px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .admin-nav { margin-bottom: 20px; text-align: right; }
+        .admin-nav a { margin-left: 15px; text-decoration: none; color: #007bff; }
+        .user-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .user-table th, .user-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .user-table th { background-color: #f0f0f0; }
+        .actions a, .actions button { margin-right: 8px; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 0.9em; }
+        .actions .edit-btn { background-color: #ffc107; color: #212529; border: none; }
+        .actions .delete-btn { background-color: #dc3545; color: white; border: none; cursor: pointer; }
+        .add-user-btn { display: inline-block; margin-bottom: 20px; padding: 10px 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 20px; }
+        .flash-messages li { padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; text-align: center; }
+        .flash-messages li.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-messages li.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-messages li.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if current_user.is_authenticated %}
+            <div class="admin-nav">
+                Пользователь: <strong>{{ current_user.username }} (Администратор)</strong>
+                <a href="{{ url_for('logout_route') }}">Выйти</a>
+            </div>
+        {% endif %}
+        <h1>Управление пользователями</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <a href="{{ url_for('admin_add_user_route') }}" class="add-user-btn">Добавить нового пользователя</a>
+
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя пользователя</th>
+                    <th>Роль</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_item in users %}
+                <tr>
+                    <td>{{ user_item.id }}</td>
+                    <td>{{ user_item.username|escape }}</td>
+                    <td>{{ user_item.role|escape }}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('admin_edit_user_route', user_id=user_item.id) }}" class="edit-btn">Редактировать</a>
+                        {% if user_item.username != 'root' and user_item.id != current_user.id %} {# Нельзя удалить рута или себя #}
+                        <form method="POST" action="{{ url_for('admin_delete_user_route', user_id=user_item.id) }}" style="display:inline;" onsubmit="return confirm('Вы уверены, что хотите удалить пользователя {{ user_item.username|escape }}? Это также удалит все его записи времени.');">
+                            <button type="submit" class="delete-btn">Удалить</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">Пользователи не найдены.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
